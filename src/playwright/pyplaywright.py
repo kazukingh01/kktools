@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Union, Tuple
 import urllib.parse
+import textwrap
 from playwright.sync_api import sync_playwright
 
 FONT_FILE_NAME   = "ipaexg.ttf"
@@ -61,7 +62,8 @@ def run_actions_on_html(
     actions: List[Dict[str, Any]],
     viewport=(1080, 2400),
     device_scale_factor=3,
-    is_head: bool=False
+    is_head: bool=False,
+    is_no_sandbox: bool=False
 ):
     if FONT_FACE_COUNT == 0:
         print(f"[warn] font ./fonts/{FONT_FILE_NAME} not found; falling back to default fonts.")
@@ -83,12 +85,10 @@ def run_actions_on_html(
                         headless=(is_head == False),
                         chromium_sandbox=False,
                         args=[
-                            "--no-sandbox",
-                            "--disable-setuid-sandbox",
                             "--single-process",
                             "--no-zygote",
                             "--disable-gpu",
-                        ],
+                        ] + (["--no-sandbox", "--disable-setuid-sandbox"] if is_no_sandbox else []),
                     )
                 else:
                     browser = p.firefox.launch(headless=(is_head == False))
@@ -1132,40 +1132,78 @@ def html_string_to_data_uri(html: str) -> str:
     return f"data:text/html;charset=utf-8,{quoted}"
 
 if __name__ == "__main__":
-    """
-    Usage::
-        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"screenshot","path":"01_initial.png","full_page":false}]'
-        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"click","selector":".hamburger"},{"action":"wait","ms":500},{"action":"screenshot","path":"02_left_sidebar.png","full_page":false}]'
-        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"click","selector":"#right-sidebar-handle"},{"action":"wait","ms":500},{"action":"screenshot","path":"03_right_sidebar_open.png","full_page":false}]'
-        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":800},{"action":"wait","ms":800},{"action":"screenshot","path":"04_scrolled_down.png","full_page":false}]'
-        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":3000},{"action":"scroll","target":".table-wrapper","x":600,"y":0},{"action":"wait","ms":800},{"action":"screenshot","path":"05_table_scrolled_right.png","full_page":false}]'
-        ./venv/bin/python pyplaywright.py --test --head -a '[
-            {"action":"wait","ms":1000},{"action":"screenshot","path":"01_initial.png","full_page":false},
-            {"action":"click","selector":".hamburger"},{"action":"wait","ms":500},
-            {"action":"screenshot","path":"02_left_sidebar.png","full_page":false},
-            {"action":"click","selector":"#right-sidebar-handle"},{"action":"wait","ms":500},
-            {"action":"screenshot","path":"03_right_sidebar_open.png","full_page":false},
-            {"action":"scroll","target":"window","x":0,"y":800},{"action":"wait","ms":800},
-            {"action":"screenshot","path":"04_scrolled_down.png","full_page":false},
-            {"action":"scroll","target":".table-wrapper","x":600,"y":0},{"action":"wait","ms":800},
-            {"action":"screenshot","path":"05_table_scrolled_right.png","full_page":false}
-        ]'
-    """
     import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", help="入力 HTML ファイル")
-    parser.add_argument("-v", "--viewport", type=int, nargs=2, default=(375, 667))
+
+    default_actions = [{"action": "wait", "ms": 10000}, ]
+
+    action_description = textwrap.dedent(
+        """\
+        Actions JSON の書き方（selector は .class でも #id でもOK）:
+          - wait: {"action":"wait","ms":500}
+          - click: {"action":"click","selector":".btn"}
+          - scroll: {"action":"scroll","target":"#main-content","x":0,"y":800}  # target はスクロールさせたい要素の CSS セレクタ。window 指定は不可
+          - type: {"action":"type","selector":"input[name=q]","text":"hello","clear":true}
+          - screenshot: {"action":"screenshot","path":"shot.png","full_page":false}
+
+        例（組み込みデモ HTML 向け。セレクタは .class / #id のどちらでも指定可）:
+          pyplaywright -a '[{"action":"wait","ms":1000},{"action":"screenshot","path":"01_initial.png","full_page":false}]'
+          pyplaywright -a '[{"action":"wait","ms":1000},{"action":"click","selector":".hamburger"},{"action":"wait","ms":500},{"action":"screenshot","path":"02_left_sidebar.png","full_page":false}]'
+          pyplaywright -a '[{"action":"wait","ms":1000},{"action":"click","selector":"#right-sidebar-handle"},{"action":"wait","ms":500},{"action":"screenshot","path":"03_right_sidebar_open.png","full_page":false}]'
+          pyplaywright -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":800},{"action":"wait","ms":800},{"action":"screenshot","path":"04_scrolled_down.png","full_page":false}]'
+          pyplaywright -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":3000},{"action":"scroll","target":".table-wrapper","x":600,"y":0},{"action":"wait","ms":800},{"action":"screenshot","path":"05_table_scrolled_right.png","full_page":false}]'
+        """
+    )
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Playwright で HTML をモバイル相当の環境に読み込み、"
+            "JSON で指定した操作（クリック/スクロール/入力/スクショ）を順に実行する簡易ツール。"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=action_description,
+    )
     parser.add_argument(
-        "-a", "--actions", type=lambda x: json.loads(x), default='''[
-            { "action": "wait", "ms": 10000 },
-            { "action": "screenshot", "path": "image.png", "full_page": false }
-        ]''')
-    parser.add_argument('--test', action='store_true')
-    parser.add_argument('--head', action='store_true')
+        "-f",
+        "--file",
+        help="入力 HTML ファイルへのパス（data URI も可）。未指定の場合は組み込みデモを使用。",
+    )
+    parser.add_argument(
+        "-v",
+        "--viewport",
+        type=int,
+        nargs=2,
+        metavar=("WIDTH", "HEIGHT"),
+        default=(375, 667),
+        help="モバイル表示用の viewport サイズ(px)。例: -v 375 667",
+    )
+    parser.add_argument(
+        "-a",
+        "--actions",
+        type=json.loads,
+        default=default_actions,
+        help="順番に実行するアクションの JSON 配列。詳細は下部の説明を参照。",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="組み込みのデモ HTML を使用する（--file が不要）。",
+    )
+    parser.add_argument(
+        "--head",
+        action="store_true",
+        help="ヘッドレスを解除してブラウザウィンドウを表示する。",
+    )
+    parser.add_argument(
+        "--no-sandbox",
+        action="store_true",
+        help="sandbox を無効にする。",
+    )
     args = parser.parse_args()
-    if args.test:
+    if args.test or not args.file:
+        if not args.file and not args.test:
+            print("[info] --file が指定されていないため組み込みデモ HTML を使用します。")
         html_path = html_string_to_data_uri(test_html())
     else:
         html_path = Path(args.file)
     actions = args.actions if args.actions else []
-    run_actions_on_html(html_path, actions, viewport=args.viewport, is_head=args.head)
+    run_actions_on_html(html_path, actions, viewport=args.viewport, is_head=args.head, is_no_sandbox=args.no_sandbox)
