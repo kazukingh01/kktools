@@ -1,4 +1,5 @@
 #! /bin/bash
+set -euo
 
 cd "$(dirname "$0")"
 python -m venv venv
