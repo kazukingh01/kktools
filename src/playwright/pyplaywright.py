@@ -1134,12 +1134,12 @@ def html_string_to_data_uri(html: str) -> str:
 if __name__ == "__main__":
     """
     Usage::
-        ./venv/bin/python pyplaywrite.py --test --head -a '[{"action":"wait","ms":1000},{"action":"screenshot","path":"01_initial.png","full_page":false}]'
-        ./venv/bin/python pyplaywrite.py --test --head -a '[{"action":"wait","ms":1000},{"action":"click","selector":".hamburger"},{"action":"wait","ms":500},{"action":"screenshot","path":"02_left_sidebar.png","full_page":false}]'
-        ./venv/bin/python pyplaywrite.py --test --head -a '[{"action":"wait","ms":1000},{"action":"click","selector":"#right-sidebar-handle"},{"action":"wait","ms":500},{"action":"screenshot","path":"03_right_sidebar_open.png","full_page":false}]'
-        ./venv/bin/python pyplaywrite.py --test --head -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":800},{"action":"wait","ms":800},{"action":"screenshot","path":"04_scrolled_down.png","full_page":false}]'
-        ./venv/bin/python pyplaywrite.py --test --head -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":3000},{"action":"scroll","target":".table-wrapper","x":600,"y":0},{"action":"wait","ms":800},{"action":"screenshot","path":"05_table_scrolled_right.png","full_page":false}]'
-        ./venv/bin/python pyplaywrite.py --test --head -a '[
+        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"screenshot","path":"01_initial.png","full_page":false}]'
+        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"click","selector":".hamburger"},{"action":"wait","ms":500},{"action":"screenshot","path":"02_left_sidebar.png","full_page":false}]'
+        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"click","selector":"#right-sidebar-handle"},{"action":"wait","ms":500},{"action":"screenshot","path":"03_right_sidebar_open.png","full_page":false}]'
+        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":800},{"action":"wait","ms":800},{"action":"screenshot","path":"04_scrolled_down.png","full_page":false}]'
+        ./venv/bin/python pyplaywright.py --test --head -a '[{"action":"wait","ms":1000},{"action":"scroll","target":".main-content","x":0,"y":3000},{"action":"scroll","target":".table-wrapper","x":600,"y":0},{"action":"wait","ms":800},{"action":"screenshot","path":"05_table_scrolled_right.png","full_page":false}]'
+        ./venv/bin/python pyplaywright.py --test --head -a '[
             {"action":"wait","ms":1000},{"action":"screenshot","path":"01_initial.png","full_page":false},
             {"action":"click","selector":".hamburger"},{"action":"wait","ms":500},
             {"action":"screenshot","path":"02_left_sidebar.png","full_page":false},
